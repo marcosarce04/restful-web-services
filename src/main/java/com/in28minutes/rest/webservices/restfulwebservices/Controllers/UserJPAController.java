@@ -5,15 +5,16 @@ import com.in28minutes.rest.webservices.restfulwebservices.Beans.User;
 import com.in28minutes.rest.webservices.restfulwebservices.Exceptions.UserNotFoundException;
 import com.in28minutes.rest.webservices.restfulwebservices.Repositories.PostRepository;
 import com.in28minutes.rest.webservices.restfulwebservices.Repositories.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,11 +24,14 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @RestController
 public class UserJPAController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private PostRepository postRepository;
+    private final PostRepository postRepository;
+
+    public UserJPAController(UserRepository userRepository, PostRepository postRepository) {
+        this.userRepository = userRepository;
+        this.postRepository = postRepository;
+    }
 
     @GetMapping("/users")
     public List<User> retrieveAllUsers() {
@@ -59,13 +63,11 @@ public class UserJPAController {
     }
 
     @PostMapping("/users")
-    public ResponseEntity<Object> createUser(@Valid @RequestBody User user) {
+    public ResponseEntity<Object> createUser(@Valid @RequestBody User user, HttpServletRequest request) throws URISyntaxException {
+
         User savedUser = userRepository.save(user);
 
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(savedUser.getId()).toUri();
+        URI location = new URI(request.getRequestURL() + "/" + savedUser.getId());
 
         return ResponseEntity.created(location).build();
     }
